@@ -27,6 +27,38 @@ def extract_text_from_pdf(pdf_path):
         return None
     return text
 
+def get_all_pdf_texts():
+    """Get text from all PDFs in the downloads directory"""
+    all_text = ""
+    downloads_dir = 'downloads'
+    
+    if not os.path.exists(downloads_dir):
+        print(f"Downloads directory not found: {downloads_dir}")
+        return None
+    
+    # Get all PDF files in the downloads directory
+    pdf_files = [f for f in os.listdir(downloads_dir) if f.endswith('.pdf')]
+    
+    if not pdf_files:
+        print("No PDF files found in downloads directory")
+        return None
+    
+    print(f"Found {len(pdf_files)} PDF files")
+    
+    # Process each PDF
+    for pdf_file in pdf_files:
+        pdf_path = os.path.join(downloads_dir, pdf_file)
+        print(f"\nProcessing {pdf_file}...")
+        
+        text = extract_text_from_pdf(pdf_path)
+        if text:
+            print(f"Successfully extracted {len(text.split())} words from {pdf_file}")
+            all_text += text + "\n\n"
+        else:
+            print(f"Failed to extract text from {pdf_file}")
+    
+    return all_text
+
 class BackgammonDataset(Dataset):
     def __init__(self, text, tokenizer, max_length=256):
         self.tokenizer = tokenizer
@@ -109,16 +141,15 @@ def train_model():
     model = GPT2LMHeadModel(config).to(device)
     print(f"Model size: {sum(p.numel() for p in model.parameters()) / 1e6:.2f}M parameters")
     
-    # Extract text from PDF
-    print("Extracting text from PDF...")
-    pdf_path = 'downloads/GNUBackgammon_vs_Mamoun.pdf'
-    text = extract_text_from_pdf(pdf_path)
+    # Extract text from all PDFs
+    print("Extracting text from PDFs...")
+    text = get_all_pdf_texts()
     
     if text is None:
-        print("Failed to extract text from PDF")
+        print("Failed to extract text from PDFs")
         return
     
-    print(f"Extracted {len(text.split())} words from PDF")
+    print(f"Extracted {len(text.split())} total words from all PDFs")
     
     # Create dataset and dataloader
     print("Creating dataset...")

@@ -173,6 +173,7 @@ if __name__ == "__main__":
     pdfs_to_download = [
         "https://dn790006.ca.archive.org/0/items/gnubg_vs_mamoun_html_source_files/GNUBackgammon_vs_Mamoun.pdf",
         "https://www.edwardothorp.com/wp-content/uploads/2016/11/BackGammon.pdf",
+        "https://www.mathnet.ru/links/658c6c904d7271d98d0427836714eed2/cgtm255.pdf",
         # Add more URLs here as needed
         # ("https://example.com/another.pdf", "custom_name.pdf"),  # Custom filename example
     ]
