@@ -212,12 +212,12 @@ def train_model():
     
     # Training setup
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
-    num_epochs = 10
+    num_epochs = 20
     
     # Early stopping setup
     best_test_loss = float('inf')
-    patience = 3
-    patience_counter = 0
+    # patience = 3
+    # patience_counter = 0
     
     # Training loop
     print("Starting training...")
@@ -283,18 +283,18 @@ def train_model():
         # Early stopping check
         if avg_test_loss < best_test_loss:
             best_test_loss = avg_test_loss
-            patience_counter = 0
+            # patience_counter = 0
             # Save best model
             checkpoint_dir = './backgammon_model'
             os.makedirs(checkpoint_dir, exist_ok=True)
             torch.save(model.state_dict(), os.path.join(checkpoint_dir, 'best_model.pt'))
             tokenizer.save_pretrained(checkpoint_dir)
             print(f"Saved best model at epoch {epoch + 1} with test loss: {best_test_loss:.4f}")
-        else:
-            patience_counter += 1
-            if patience_counter >= patience:
-                print(f"Early stopping triggered after {epoch + 1} epochs")
-                break
+        # else:
+        #     patience_counter += 1
+        #     if patience_counter >= patience:
+        #         print(f"Early stopping triggered after {epoch + 1} epochs")
+        #         break
         
         model.train()
         
