@@ -72,40 +72,44 @@ class BackgammonDataset(Dataset):
         self.tokenizer = tokenizer
         self.max_length = max_length
         
-        # Split text into chunks of max_length
+        # First tokenize the entire text
+        tokens = self.tokenizer.encode(text)
+        
+        # Create overlapping chunks using sliding window
         self.chunks = []
-        words = text.split()
-        current_chunk = []
-        current_length = 0
+        stride = max_length // 2  # Overlap by half the max_length
         
-        for word in words:
-            # Tokenize the word to get its length
-            word_tokens = len(self.tokenizer.encode(word))
-            if current_length + word_tokens > max_length:
-                # Save current chunk and start new one
-                self.chunks.append(' '.join(current_chunk))
-                current_chunk = [word]
-                current_length = word_tokens
-            else:
-                current_chunk.append(word)
-                current_length += word_tokens
-        
-        if current_chunk:
-            self.chunks.append(' '.join(current_chunk))
+        for i in range(0, len(tokens), stride):
+            # Get chunk of tokens
+            chunk_tokens = tokens[i:i + max_length]
+            if len(chunk_tokens) < max_length // 2:  # Skip very short chunks at the end
+                break
+                
+            # Decode tokens back to text
+            chunk_text = self.tokenizer.decode(chunk_tokens)
+            self.chunks.append(chunk_text)
         
         # Calculate split points for train/test
         total_chunks = len(self.chunks)
         test_size = int(total_chunks * 0.1)  # 10% for testing
         middle_start = total_chunks // 2 - test_size // 2
         
+        # Store test chunks separately
+        self.test_chunks = self.chunks[middle_start:middle_start + test_size]
+        
+        # For training, use all chunks
         if is_training:
-            # For training, use chunks before and after the test set
-            self.chunks = self.chunks[:middle_start] + self.chunks[middle_start + test_size:]
+            self.chunks = self.chunks
         else:
-            # For testing, use chunks from the middle
-            self.chunks = self.chunks[middle_start:middle_start + test_size]
+            # For testing, use only test chunks
+            self.chunks = self.test_chunks
         
         print(f"Created {len(self.chunks)} text chunks for {'training' if is_training else 'testing'}")
+        if is_training:
+            print(f"Training on all {len(self.chunks)} chunks")
+            print(f"Each chunk overlaps with the next by {stride} tokens")
+        else:
+            print(f"Testing on {len(self.chunks)} chunks from the middle")
         
     def __len__(self):
         return len(self.chunks)
@@ -199,14 +203,14 @@ def train_model():
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=4,
-        shuffle=True,
+        shuffle=False,  # Don't shuffle to maintain context
         num_workers=0
     )
     
     test_dataloader = DataLoader(
         test_dataset,
         batch_size=4,
-        shuffle=False,
+        shuffle=False,  # Don't shuffle test data either
         num_workers=0
     )
     
