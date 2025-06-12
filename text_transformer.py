@@ -13,24 +13,30 @@ import wandb
 import numpy as np
 
 def extract_text_from_pdf(pdf_path):
-    """Extract text from PDF, cleaning it up and removing images."""
+    """Extract text from PDF or text file, cleaning it up and removing images."""
     text = ""
     try:
-        with open(pdf_path, 'rb') as file:
-            reader = PyPDF2.PdfReader(file)
-            for page in reader.pages:
-                page_text = page.extract_text()
-                # Clean up the text
-                page_text = re.sub(r'\s+', ' ', page_text)  # Remove extra whitespace
-                page_text = re.sub(r'[^\w\s.,!?-]', '', page_text)  # Keep only basic punctuation
-                text += page_text + "\n"
+        # Check if it's a text file
+        if pdf_path.endswith('.txt'):
+            with open(pdf_path, 'r', encoding='utf-8') as file:
+                text = file.read()
+        else:
+            # Handle PDF files as before
+            with open(pdf_path, 'rb') as file:
+                reader = PyPDF2.PdfReader(file)
+                for page in reader.pages:
+                    page_text = page.extract_text()
+                    # Clean up the text
+                    page_text = re.sub(r'\s+', ' ', page_text)  # Remove extra whitespace
+                    page_text = re.sub(r'[^\w\s.,!?-]', '', page_text)  # Keep only basic punctuation
+                    text += page_text + "\n"
     except Exception as e:
-        print(f"Error reading PDF: {e}")
+        print(f"Error reading file: {e}")
         return None
     return text
 
 def get_all_pdf_texts():
-    """Get text from all PDFs in the downloads directory"""
+    """Get text from all PDFs and text files in the downloads directory"""
     all_text = ""
     downloads_dir = 'downloads'
     
@@ -38,26 +44,26 @@ def get_all_pdf_texts():
         print(f"Downloads directory not found: {downloads_dir}")
         return None
     
-    # Get all PDF files in the downloads directory
-    pdf_files = [f for f in os.listdir(downloads_dir) if f.endswith('.pdf')]
+    # Get all PDF and text files in the downloads directory
+    files = [f for f in os.listdir(downloads_dir) if f.endswith(('.pdf', '.txt'))]
     
-    if not pdf_files:
-        print("No PDF files found in downloads directory")
+    if not files:
+        print("No PDF or text files found in downloads directory")
         return None
     
-    print(f"Found {len(pdf_files)} PDF files")
+    print(f"Found {len(files)} files")
     
-    # Process each PDF
-    for pdf_file in pdf_files:
-        pdf_path = os.path.join(downloads_dir, pdf_file)
-        print(f"\nProcessing {pdf_file}...")
+    # Process each file
+    for file in files:
+        file_path = os.path.join(downloads_dir, file)
+        print(f"\nProcessing {file}...")
         
-        text = extract_text_from_pdf(pdf_path)
+        text = extract_text_from_pdf(file_path)
         if text:
-            print(f"Successfully extracted {len(text.split())} words from {pdf_file}")
+            print(f"Successfully extracted {len(text.split())} words from {file}")
             all_text += text + "\n\n"
         else:
-            print(f"Failed to extract text from {pdf_file}")
+            print(f"Failed to extract text from {file}")
     
     return all_text
 
@@ -365,10 +371,16 @@ def generate_text(prompt, max_length=100):
 
 if __name__ == "__main__":
     # Train the model
+    print("Starting model training...")
     train_model()
     
-    # Example of generating text
-    prompt = "In backgammon, the key strategy is"
-    generated_text = generate_text(prompt)
-    print("\nGenerated text:")
-    print(generated_text)
+    # Only try to generate text if the model exists
+    model_path = './backgammon_model/model.pt'
+    if os.path.exists(model_path):
+        print("\nGenerating sample text...")
+        prompt = "In backgammon, the key strategy is"
+        generated_text = generate_text(prompt)
+        print("\nGenerated text:")
+        print(generated_text)
+    else:
+        print("\nModel training completed. To generate text, run the script again after training is complete.")
