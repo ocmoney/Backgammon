@@ -137,7 +137,7 @@ def train_model():
             "architecture": "GPT2",
             "dataset": "Backgammon PDFs",
             "epochs": 20,
-            "batch_size": 60,
+            "batch_size": 64,
             "learning_rate": 3e-4,
             "max_length": 256,
             "n_layer": 4,
@@ -202,21 +202,21 @@ def train_model():
     
     train_dataloader = DataLoader(
         train_dataset,
-        batch_size=4,
+        batch_size=64,
         shuffle=False,  # Don't shuffle to maintain context
         num_workers=0
     )
     
     test_dataloader = DataLoader(
         test_dataset,
-        batch_size=4,
+        batch_size=64,
         shuffle=False,  # Don't shuffle test data either
         num_workers=0
     )
     
     # Training setup
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
-    num_epochs = 20
+    num_epochs = 40
     
     # Early stopping setup
     best_test_loss = float('inf')
