@@ -32,7 +32,7 @@ def generate_text(prompt, max_new_tokens=100):
     )
     
     model = GPT2LMHeadModel(config)
-    model.load_state_dict(torch.load('./backgammon_model/model_epoch_8.pt'))
+    model.load_state_dict(torch.load('./backgammon_model/best_model.pt'))
     model = model.to(device)
     model.eval()
     

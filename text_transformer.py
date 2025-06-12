@@ -137,7 +137,7 @@ def train_model():
             "architecture": "GPT2",
             "dataset": "Backgammon PDFs",
             "epochs": 20,
-            "batch_size": 4,
+            "batch_size": 60,
             "learning_rate": 3e-4,
             "max_length": 256,
             "n_layer": 4,
