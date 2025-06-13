@@ -88,26 +88,27 @@ def prepare_dataset(texts, tokenizer):
     
     # Process each piece
     for piece in text_pieces:
-        # Tokenize the piece
-        tokens = tokenizer.encode(piece)
+        # Tokenize the piece with proper padding and attention mask
+        encodings = tokenizer(
+            piece,
+            truncation=True,
+            max_length=max_length,
+            padding='max_length',
+            return_tensors='pt'
+        )
         
-        # Create chunks of max_length
-        for i in range(0, len(tokens), max_length):
-            chunk = tokens[i:i + max_length]
-            if len(chunk) == max_length:  # Only use full-length chunks
-                chunks.append(chunk)
+        # Add to chunks if it's a full sequence
+        if len(encodings['input_ids'][0]) == max_length:
+            chunks.append({
+                'input_ids': encodings['input_ids'][0],
+                'attention_mask': encodings['attention_mask'][0],
+                'labels': encodings['input_ids'][0].clone()
+            })
     
     print(f"Created {len(chunks)} chunks of length {max_length}")
     print(f"Processed {len(text_pieces)} text pieces")
     
-    # Convert chunks to tensors
-    encodings = {
-        'input_ids': chunks,
-        'attention_mask': [[1] * max_length for _ in chunks],
-        'labels': chunks  # Add labels for training
-    }
-    
-    return Dataset.from_dict(encodings)
+    return Dataset.from_list(chunks)
 
 def fine_tune_tiny_llama():
     # Set memory optimization settings
@@ -140,14 +141,17 @@ def fine_tune_tiny_llama():
     # Define training arguments with memory optimizations
     training_args = TrainingArguments(
         output_dir='./tmp',  # Minimal temporary directory
-        num_train_epochs=3,
+        num_train_epochs=5,  # Increased epochs
         per_device_train_batch_size=1,  # Reduced batch size
         gradient_accumulation_steps=16,  # Accumulate gradients
         save_strategy="no",  # Disable checkpointing
         run_name="tiny-llama-finetune",
         gradient_checkpointing=True,  # Enable gradient checkpointing
-        learning_rate=2e-5,  # Reduced learning rate
-        logging_steps=10
+        learning_rate=1e-5,  # Reduced learning rate for better stability
+        logging_steps=10,
+        warmup_ratio=0.1,  # Add warmup
+        weight_decay=0.01,  # Add weight decay
+        max_grad_norm=1.0,  # Gradient clipping
     )
 
     # Initialize the Trainer
@@ -166,11 +170,69 @@ def fine_tune_tiny_llama():
     tokenizer.save_pretrained(model_name)
     
     # Clean up temporary files
-    if os.path.exists('./results'):
-        shutil.rmtree('./results')
+    if os.path.exists('./tmp'):
+        shutil.rmtree('./tmp')
     
     print("Fine-tuning completed successfully!")
     print(f"Model saved to: {model_name}")
 
+def generate_text(prompt, max_new_tokens=200):
+    """Generate text with proper attention mask and length handling"""
+    model_name = 'TinyLlama/TinyLlama-1.1B-Chat-v1.0'
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
+    
+    # Format the prompt to encourage better responses
+    formatted_prompt = f"""Below is a question about backgammon. Please provide a clear, concise answer.
+
+Question: {prompt}
+
+Answer:"""
+    
+    # Properly encode the input with attention mask
+    inputs = tokenizer(
+        formatted_prompt,
+        return_tensors='pt',
+        padding=True,
+        truncation=True,
+        max_length=512
+    )
+    
+    # Generate with better parameters
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=max_new_tokens,
+        num_return_sequences=1,
+        no_repeat_ngram_size=3,
+        temperature=0.6,  # Lower temperature for more focused output
+        top_k=40,  # More focused sampling
+        top_p=0.85,  # More focused sampling
+        do_sample=True,
+        pad_token_id=tokenizer.pad_token_id,
+        repetition_penalty=1.2,  # Prevent repetition
+        length_penalty=1.0,  # Encourage complete sentences
+        early_stopping=True  # Stop at natural ending points
+    )
+    
+    # Clean up the response
+    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    # Remove the prompt from the response
+    response = response.replace(formatted_prompt, "").strip()
+    return response
+
 if __name__ == "__main__":
     fine_tune_tiny_llama()
+    
+    # Test the model with more specific prompts
+    test_prompts = [
+        "What is the best opening roll in backgammon and why?",
+        "How should I play a 3-1 roll in the opening?",
+        "What are the key principles of backgammon opening strategy?",
+        "What's the difference between a running game and a priming game?",
+        "How do I decide whether to hit or run in the opening?"
+    ]
+    
+    print("\nTesting the fine-tuned model:")
+    for prompt in test_prompts:
+        print(f"\nPrompt: {prompt}")
+        print(f"Response: {generate_text(prompt)}")
