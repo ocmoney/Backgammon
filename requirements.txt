@@ -11,3 +11,4 @@ beautifulsoup4
 fpdf
 reportlab
 PyPDF2
+datasets
