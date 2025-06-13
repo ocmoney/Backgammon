@@ -9,3 +9,5 @@ wandb
 requests
 beautifulsoup4
 fpdf
+reportlab
+PyPDF2

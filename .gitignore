@@ -44,5 +44,8 @@ wheels/
 # OS
 .DS_Store
 Thumbs.db
+
 backgammon_model/
+downloads/
 wandb/
+tiny_llama_model/

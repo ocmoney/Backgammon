@@ -117,5 +117,14 @@ wheels/
 Thumbs.db
 EOL
 
+# Add a step to set the Python interpreter path in the IDE's settings
+echo "Setting the Python interpreter path in the IDE's settings..."
+mkdir -p .vscode
+cat > .vscode/settings.json << EOL
+{
+    "python.defaultInterpreterPath": "/opt/conda/envs/backgammon/bin/python"
+}
+EOL
+
 echo "Setup completed successfully!"
 echo "To activate the environment, run: source /opt/conda/etc/profile.d/conda.sh && conda activate $ENV_NAME" 
